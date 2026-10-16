@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3e4b59">
+<title>Studio C3 — Photo Booth</title>
+<meta name="description" content="Photo booth Studio C3. Pilih paket, ambil tiket antrean, bayar QRIS atau tunai di kasir. Soft file gratis.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+// ============================ TEMA WARNA ============================
+// Ganti kata di bawah dengan salah satu: capybara, kuning, biru, pink, mint, ungu
+// (index.html dan kasir.html sebaiknya memakai kata yang sama)
+var TEMA = "capybara";
+
+// Setiap tema = 5 warna dasar: latar, kartu, aksen, aksen gelap, teks.
+// "vars" (opsional) = pengaturan warna lanjutan. Untuk tema baru cukup salin salah satu baris sederhana (mis. biru).
+var THEMES = {
+  capybara: {
+    yellow: "#7a4b2e",   // latar utama: cokelat
+    cream: "#f7e3b5",    // kartu
+    gold: "#3e4b59",     // aksen: abu-abu slate (tombol, garis, judul kecil)
+    goldDeep: "#2b3541", // abu-abu gelap
+    ink: "#2e1b0c",      // teks di kartu: cokelat sangat gelap
+    capy: true,          // tampilkan gambar capybara
+    vars: {
+      "on-bg": "#f7e3b5",                                                // teks di atas latar cokelat
+      "head-bg": "#3e4b59", "head-fg": "#f7e3b5", "brand-accent": "#f2b880",
+      "head-btn-bg": "#f2b880", "head-btn-fg": "#2e1b0c",
+      "band": "#3e4b59", "on-band": "#f7e3b5",                           // bagian "Dari pilih paket..."
+      "btn2-bg": "#f2b880", "btn2-fg": "#2e1b0c", "btn2-hover": "#f7cfa6", // tombol di atas latar cokelat
+      "ghost-fg": "#f7e3b5", "ghost-line": "#f7e3b5",
+      "deal-bg": "#7fa5a3", "deal-fg": "#2e1b0c",                        // hijau toska
+      "step-bg": "#7fa5a3", "step-fg": "#2e1b0c",
+      "notice-bg": "#d98c75", "notice-fg": "#2e1b0c",
+      "ring": "#7fa5a3", "ring2": "#f2b880", "badge-bg": "#7fa5a3", "focus": "#f2b880",
+      "strip-label": "#f2b880",
+      "f1": "#f2b880", "f2": "#f7e3b5", "f3": "#7fa5a3", "f4": "#d98c75"
+    }
+  },
+  kuning: { yellow: "#ffd21f", cream: "#fff8d6", gold: "#7a5900", goldDeep: "#4f3a00", ink: "#2b2000" },
+  biru:   { yellow: "#8ecbff", cream: "#eef7ff", gold: "#0b4f8a", goldDeep: "#08345c", ink: "#04182b" },
+  pink:   { yellow: "#ffb6d1", cream: "#fff0f6", gold: "#8a1c4f", goldDeep: "#5c0f35", ink: "#2a0a18" },
+  mint:   { yellow: "#8fe3c0", cream: "#effcf6", gold: "#0f5c3f", goldDeep: "#083d29", ink: "#04251a" },
+  ungu:   { yellow: "#cdb8ff", cream: "#f5f0ff", gold: "#4b2a8f", goldDeep: "#2f1a5e", ink: "#170c33" }
+};
+// ====================================================================
+
+// Bagian di bawah ini tidak perlu diubah.
+(function () {
+  var t = THEMES[TEMA] || THEMES.kuning;
+  function rgb(h) { h = h.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+  function mix(a, b, w) {
+    var x = rgb(a), y = rgb(b), o = "#";
+    for (var i = 0; i < 3; i++) o += ("0" + Math.round(x[i] * (1 - w) + y[i] * w).toString(16)).slice(-2);
+    return o;
+  }
+  function rgba(h, a) { return "rgba(" + rgb(h).join(", ") + ", " + a + ")"; }
+  var v = {
+    "yellow": t.yellow, "cream": t.cream, "gold": t.gold, "gold-deep": t.goldDeep, "ink": t.ink,
+    "line": rgba(t.gold, .45), "soft": rgba(t.gold, .1), "shadow": rgba(t.goldDeep, .25), "hover": rgba(t.yellow, .35),
+    "hi": mix(t.cream, "#ffffff", .6),
+    "f1": mix(t.yellow, "#ffffff", .45), "f2": t.cream, "f3": mix(t.yellow, t.gold, .12), "f4": mix(t.yellow, "#ffffff", .2),
+    "done": mix(t.cream, t.gold, .22), "done-line": mix(t.cream, t.gold, .5),
+    // pengaturan lanjutan (nilai awal = perilaku tema biasa)
+    "bg": t.yellow, "on-bg": t.ink, "head-bg": "transparent", "head-fg": t.ink, "brand-accent": t.gold,
+    "head-btn-bg": t.gold, "head-btn-fg": t.cream, "band": t.goldDeep, "on-band": t.cream,
+    "btn2-bg": t.gold, "btn2-fg": t.cream, "btn2-hover": t.goldDeep, "ghost-fg": t.goldDeep, "ghost-line": t.gold,
+    "deal-bg": t.gold, "deal-fg": t.cream, "step-bg": t.yellow, "step-fg": t.ink,
+    "notice-bg": t.gold, "notice-fg": t.cream, "ring": t.gold, "ring2": t.gold, "badge-bg": t.yellow,
+    "focus": t.ink, "strip-label": t.yellow
+  };
+  if (t.vars) for (var kk in t.vars) v[kk] = t.vars[kk];
+  for (var k in v) document.documentElement.style.setProperty("--" + k, v[k]);
+
+  // Gambar capybara (hanya tema capybara)
+  if (t.capy) {
+    var line = "#5c3317", body = "#d2914f", part = "#a0643a";
+    var capy = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150"><g stroke="' + line + '" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">' +
+      '<circle cx="50" cy="34" r="14" fill="' + part + '"/><circle cx="150" cy="34" r="14" fill="' + part + '"/>' +
+      '<path d="M40 142C34 122 38 108 30 92C20 70 28 42 55 30C76 20 124 20 145 30C172 42 180 70 170 92C162 108 166 122 160 142Z" fill="' + body + '"/>' +
+      '<path d="M44 110Q52 114 60 116M156 110Q148 114 140 116" fill="none"/>' +
+      '<ellipse cx="72" cy="64" rx="4" ry="6" fill="' + line + '" stroke="none"/><ellipse cx="128" cy="64" rx="4" ry="6" fill="' + line + '" stroke="none"/>' +
+      '<ellipse cx="100" cy="80" rx="20" ry="15" fill="' + line + '" stroke="none"/>' +
+      '<ellipse cx="93" cy="82" rx="3" ry="2.2" fill="#7a4a28" stroke="none"/><ellipse cx="107" cy="82" rx="3" ry="2.2" fill="#7a4a28" stroke="none"/>' +
+      '<path d="M100 95V101M80 98Q90 110 100 101Q110 110 120 98" fill="none" stroke-width="3.5"/>' +
+      '<ellipse cx="64" cy="138" rx="17" ry="11" fill="' + part + '"/><ellipse cx="136" cy="138" rx="17" ry="11" fill="' + part + '"/>' +
+      '<path d="M58 134V143M64 132V144M70 134V143M130 134V143M136 132V144M142 134V143" fill="none" stroke-width="2.5"/></g></svg>';
+    // Pola samar di latar: dua kepala capybara kecil
+    function mini(x, y) {
+      return '<g transform="translate(' + x + ' ' + y + ') scale(.34)"><g fill="' + t.cream + '" fill-opacity=".08">' +
+        '<circle cx="50" cy="34" r="16"/><circle cx="150" cy="34" r="16"/>' +
+        '<path d="M40 142C34 122 38 108 30 92C20 70 28 42 55 30C76 20 124 20 145 30C172 42 180 70 170 92C162 108 166 122 160 142Z"/></g>' +
+        '<g fill="' + t.ink + '" fill-opacity=".14"><ellipse cx="72" cy="64" rx="5" ry="7"/><ellipse cx="128" cy="64" rx="5" ry="7"/><ellipse cx="100" cy="80" rx="20" ry="15"/></g></g>';
+    }
+    var tile = '<svg xmlns="http://www.w3.org/2000/svg" width="170" height="170" viewBox="0 0 170 170">' + mini(14, 18) + mini(96, 100) + '</svg>';
+    var root = document.documentElement.style;
+    root.setProperty("--capy", 'url("data:image/svg+xml;utf8,' + encodeURIComponent(capy) + '")');
+    root.setProperty("--capy-tile", 'url("data:image/svg+xml;utf8,' + encodeURIComponent(tile) + '")');
+    root.setProperty("--peek-space", "90px");
+  }
+
+  var m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", (t.vars && t.vars["head-bg"]) || t.yellow);
+})();
+</script>
+<style>
+  :root {
+    --yellow: #ffd21f;
+    --cream: #fff8d6;
+    --gold: #7a5900;        /* emas gelap: aksen utama */
+    --gold-deep: #4f3a00;
+    --ink: #2b2000;
+    --line: rgba(122, 89, 0, .45);
+    --hi: #fffdf0; --soft: rgba(122, 89, 0, .1); --shadow: rgba(79, 58, 0, .25); --hover: rgba(255, 210, 31, .35);
+    --f1: #ffe978; --f2: #fff8d6; --f3: #f5c400; --f4: #ffe24a; --done: #d9cfa3; --done-line: #a99a5a;
+    --bg: #ffd21f; --on-bg: #2b2000; --head-bg: transparent; --head-fg: #2b2000; --brand-accent: #7a5900;
+    --head-btn-bg: #7a5900; --head-btn-fg: #fff8d6; --band: #4f3a00; --on-band: #fff8d6;
+    --btn2-bg: #7a5900; --btn2-fg: #fff8d6; --btn2-hover: #4f3a00; --ghost-fg: #4f3a00; --ghost-line: #7a5900;
+    --deal-bg: #7a5900; --deal-fg: #fff8d6; --step-bg: #ffd21f; --step-fg: #2b2000; --notice-bg: #7a5900; --notice-fg: #fff8d6;
+    --ring: #7a5900; --ring2: #7a5900; --badge-bg: #ffd21f; --focus: #2b2000; --strip-label: #ffd21f;
+    --font-head: "Unbounded", "Trebuchet MS", system-ui, sans-serif;
+    --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background-color: var(--bg); background-image: var(--capy-tile, none); background-size: 170px; color: var(--on-bg);
+    font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--font-head); margin: 0; line-height: 1.12; letter-spacing: -0.02em; }
+  p { margin: 0; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .wrap { width: min(1100px, 100% - 2.5rem); margin-inline: auto; }
+
+  /* Tombol */
+  .btn {
+    display: inline-block; border: 0; cursor: pointer; text-decoration: none; text-align: center;
+    background: var(--gold); color: var(--cream); font: inherit; font-weight: 700;
+    padding: .85rem 1.5rem; border-radius: 999px; transition: background .15s;
+  }
+  .btn:hover { background: var(--gold-deep); }
+  .btn.ghost { background: transparent; color: var(--gold-deep); border: 2px solid var(--gold); }
+  .btn.ghost:hover { background: var(--soft); }
+  .hero .btn.ghost { color: var(--ghost-fg); border-color: var(--ghost-line); }
+  .hero .actions .btn:not(.ghost), .page form > .btn, #bookBtns .btn { background: var(--btn2-bg); color: var(--btn2-fg); }
+  .hero .actions .btn:not(.ghost):hover, .page form > .btn:hover, #bookBtns .btn:hover { background: var(--btn2-hover); }
+  .btn.block { display: block; width: 100%; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+  /* Header */
+  header.top { padding: 1.1rem 0; background: var(--head-bg); color: var(--head-fg); }
+  header.top .btn { background: var(--head-btn-bg); color: var(--head-btn-fg); }
+  header.top .btn:hover { background: var(--btn2-hover); }
+  header.top .wrap { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .brand { font-family: var(--font-head); font-weight: 800; font-size: 1.2rem; text-decoration: none; }
+  .brand span { color: var(--brand-accent); }
+  nav { display: flex; gap: 1.4rem; align-items: center; font-weight: 500; }
+  nav a { text-decoration: none; }
+  nav a:hover { text-decoration: underline; text-underline-offset: 4px; }
+  @media (max-width: 520px) { nav a.hide-sm { display: none; } }
+
+  /* Hero */
+  .hero { padding: 2rem 0 3.5rem; }
+  .hero .wrap { display: grid; grid-template-columns: 1.2fr .8fr; gap: 3rem; align-items: center; }
+  .hero h1 { font-size: clamp(2.2rem, 5.6vw, 4.1rem); font-weight: 800; }
+  .hero .lead { margin-top: 1.4rem; max-width: 33rem; font-size: 1.15rem; }
+  .hero .actions { margin-top: 2rem; display: flex; gap: .9rem; flex-wrap: wrap; }
+  .strip-art { justify-self: center; width: min(250px, 70%); transform: rotate(4deg); filter: drop-shadow(8px 12px 0 var(--shadow)); }
+  .strip-art svg { display: block; width: 100%; height: auto; }
+  @media (max-width: 800px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .strip-art { width: 190px; justify-self: start; }
+  }
+
+  /* Paket */
+  .packages { padding: 1rem 0 calc(4.5rem + var(--peek-space, 0px)); }
+  .section-head { margin-bottom: 2rem; max-width: 38rem; }
+  .section-head h2 { font-size: clamp(1.7rem, 3.6vw, 2.5rem); font-weight: 700; }
+  .section-head p { margin-top: .8rem; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; align-items: stretch; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+  .stub {
+    position: relative; overflow: hidden; display: flex; flex-direction: column;
+    background: var(--cream); color: var(--ink); border: 2px solid var(--gold); border-radius: 20px; padding: 1.5rem 1.5rem 1.4rem;
+  }
+  .stub h3 { font-size: 1.15rem; font-weight: 700; }
+  .stub .price { margin-top: .9rem; font-family: var(--font-head); font-size: 1.9rem; font-weight: 800; color: var(--gold-deep); }
+  .stub .price small { font-family: var(--font-body); font-size: .9rem; font-weight: 500; color: var(--ink); }
+  .cut { position: relative; border-top: 2px dashed var(--line); margin: 1.2rem -1.5rem; }
+  .cut::before, .cut::after {
+    content: ""; position: absolute; top: -14px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--gold);
+  }
+  .cut::before { left: -15px; }
+  .cut::after { right: -15px; }
+  .stub ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; flex: 1; }
+  .stub li { display: flex; justify-content: space-between; gap: 1rem; font-size: .98rem; }
+  .stub li span:first-child { color: var(--gold); }
+  .stub li b { text-align: right; }
+  .deal {
+    margin-top: 1rem; background: var(--deal-bg); color: var(--deal-fg); border-radius: 12px;
+    padding: .6rem .8rem; font-size: .92rem; font-weight: 500;
+  }
+  .stub .btn { margin-top: 1.25rem; }
+  .stub.best { background: var(--hi); box-shadow: 0 0 0 4px var(--ring2); }
+
+  /* Cara kerja */
+  .how { position: relative; background: var(--band); color: var(--on-band); padding: 4rem 0; }
+  .how h2 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); font-weight: 700; max-width: 30rem; }
+  .steps { list-style: none; counter-reset: s; margin: 2.2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+  .steps li { counter-increment: s; }
+  .steps li::before {
+    content: counter(s); display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%;
+    background: var(--step-bg); color: var(--step-fg); font-family: var(--font-head); font-weight: 700; margin-bottom: .9rem;
+  }
+  .steps h3 { font-size: 1.05rem; margin-bottom: .35rem; }
+  .steps p { opacity: .9; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+
+  footer { padding: 2rem 0; font-size: .95rem; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+  /* Pembayaran */
+  .page { padding: 1.5rem 0 4rem; }
+  .back { display: inline-block; margin-bottom: 1rem; font-weight: 500; }
+  .page h1 { font-size: clamp(1.8rem, 4.4vw, 2.8rem); font-weight: 800; }
+  .co-grid { display: grid; grid-template-columns: 1.3fr .8fr; gap: 2rem; margin-top: 1.8rem; align-items: start; }
+  @media (max-width: 860px) { .co-grid { grid-template-columns: 1fr; } }
+  form fieldset { border: 0; padding: 0; margin: 0 0 1.6rem; min-width: 0; }
+  form legend { font-family: var(--font-head); font-weight: 700; font-size: 1.05rem; margin-bottom: .8rem; padding: 0; }
+  .opt {
+    display: flex; gap: .8rem; align-items: flex-start; background: var(--cream); color: var(--ink);
+    border: 2px solid var(--line); border-radius: 14px; padding: .9rem 1rem; margin-bottom: .6rem; cursor: pointer;
+  }
+  .opt:has(input:checked) { border-color: var(--ring); box-shadow: 0 0 0 3px var(--ring); }
+  .opt:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+  .opt input { margin-top: .35rem; accent-color: var(--gold); width: 1.1rem; height: 1.1rem; flex: none; }
+  .opt b { display: block; }
+  .opt small { display: block; font-size: .93rem; color: var(--gold-deep); }
+  .field select { width: 100%; font: inherit; padding: .85rem 1rem; border-radius: 12px; border: 2px solid var(--line); background: var(--cream); color: var(--ink); }
+  .field select:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px var(--gold); }
+  .field input[type=text] {
+    width: 100%; font: inherit; padding: .85rem 1rem; border-radius: 12px; border: 2px solid var(--line); background: var(--cream); color: var(--ink);
+  }
+  .field input[type=text]:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px var(--gold); }
+  .field small { display: block; margin-top: .4rem; }
+  .hidden { display: none !important; }
+
+  .summary { background: var(--cream); color: var(--ink); border: 2px solid var(--gold); border-radius: 20px; padding: 1.4rem; position: sticky; top: 1rem; }
+  .summary h2 { font-size: 1.05rem; margin-bottom: 1rem; }
+  .summary dl { margin: 0; display: grid; gap: .6rem; }
+  .summary dl div { display: flex; justify-content: space-between; gap: 1rem; }
+  .summary dt { color: var(--gold); }
+  .summary dd { margin: 0; text-align: right; font-weight: 700; }
+  .summary .total { margin-top: 1.1rem; padding-top: 1rem; border-top: 2px dashed var(--line); display: flex; justify-content: space-between; align-items: baseline; }
+  .summary .total b { font-family: var(--font-head); font-size: 1.6rem; color: var(--gold-deep); }
+  .notice { background: var(--notice-bg); color: var(--notice-fg); border-radius: 12px; padding: .7rem .9rem; margin-top: .7rem; font-size: .95rem; }
+
+  /* Tiket digital */
+  .tickets { display: grid; gap: 2rem; margin-top: 1.8rem; max-width: 520px; }
+  .ticket { position: relative; overflow: hidden; color: var(--ink); background: var(--hi); border: 3px solid var(--gold); border-radius: 22px; }
+  .ticket .head { background: var(--gold); color: var(--cream); padding: 1rem 1.4rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .ticket .head b { font-family: var(--font-head); font-size: 1.05rem; }
+  .ticket .body { padding: 1.4rem; }
+  .ticket .code { font-family: var(--font-head); font-weight: 800; font-size: clamp(1.6rem, 7vw, 2.2rem); letter-spacing: .04em; color: var(--gold-deep); word-break: break-all; }
+  .ticket .queue { margin-top: .4rem; font-weight: 700; }
+  .ticket dl { margin: 1.1rem 0 0; display: grid; gap: .5rem; }
+  .ticket dl div { display: flex; justify-content: space-between; gap: 1rem; }
+  .ticket dt { color: var(--gold); }
+  .ticket dd { margin: 0; text-align: right; font-weight: 700; }
+  .ticket .tear { position: relative; border-top: 2px dashed var(--line); }
+  .ticket .tear::before, .ticket .tear::after {
+    content: ""; position: absolute; top: -15px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: 3px solid var(--gold);
+  }
+  .ticket .tear::before { left: -17px; }
+  .ticket .tear::after { right: -17px; }
+  .ticket .foot { padding: 1.2rem 1.4rem 1.4rem; }
+  .ticket .bars { display: block; width: 100%; height: 44px; fill: var(--ink); }
+  .ticket .howto { margin: 1rem 0 0; padding-left: 1.2rem; font-size: .95rem; }
+  .ticket-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.1rem; }
+  .ticket-actions .btn { padding: .7rem 1.2rem; }
+  .btn.off { opacity: .55; pointer-events: none; }
+  .badge { display: inline-block; margin-left: .5rem; padding: .1rem .7rem; border-radius: 999px; background: var(--badge-bg); border: 2px solid var(--gold); font-size: .82rem; font-weight: 700; }
+  .badge.paid { background: var(--gold); color: var(--cream); }
+  .badge.done { background: var(--done); border-color: var(--done-line); color: var(--ink); }
+  .wa-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .7rem; }
+  .wa-list .btn { display: block; }
+  .send-box { margin-top: 1.2rem; padding-top: 1.1rem; border-top: 2px dashed var(--line); }
+  .send-box p { margin: 0 0 .7rem; font-weight: 700; }
+  .paynote { color: var(--ink); background: var(--cream); border: 2px solid var(--line); border-radius: 14px; padding: .9rem 1rem; }
+  .book-note { margin: 0 0 .7rem; font-weight: 500; }
+  .contact { padding: calc(3.5rem + var(--peek-space, 0px)) 0 2rem; }
+  .contact-card { position: relative; color: var(--ink); background: var(--cream); border: 2px solid var(--gold); border-radius: 20px; padding: 1.6rem; display: flex; gap: 1.5rem; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .contact-card h2 { font-size: 1.4rem; font-weight: 700; }
+  .contact-card p { margin-top: .4rem; }
+  .contact-card .wa-list { flex: 1 1 380px; max-width: 520px; }
+  .empty { color: var(--ink); background: var(--cream); border: 2px dashed var(--gold); border-radius: 16px; padding: 1.6rem; max-width: 520px; margin-top: 1.5rem; }
+  .empty .btn { margin-top: 1rem; }
+
+  /* Capybara mengintip dari tepi atas (hanya tema capybara) */
+  .how::before, .contact-card::before {
+    content: ""; position: absolute; right: 7%; bottom: calc(100% - 6px); width: 150px; height: 112px;
+    background: var(--capy, none) center bottom / contain no-repeat; pointer-events: none;
+  }
+  @media (max-width: 560px) { .how::before, .contact-card::before { width: 110px; height: 82px; right: 5%; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#/">Studio <span>C3</span></a>
+    <nav>
+      <a class="hide-sm" href="#/paket">Paket</a>
+      <a href="#/tiket">Tiket saya</a>
+      <a class="btn" style="padding:.5rem 1.1rem" href="#/kontak">WhatsApp</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Studio C3 Photo Booth</span>
+    <span id="footWa"></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // ================= PENGATURAN =================
+  var CONFIG = {
+    MAX_TICKETS: 5,        // kuota tiket antrean per hari (harus sama dengan angka di supabase-setup.sql)
+    // Database Supabase (lihat supabase-setup.sql). Isi setelah proyek dibuat:
+    SUPABASE_URL: "https://qswzamffenpwslpzvypa.supabase.co",      // contoh: https://abcdefghij.supabase.co
+    SUPABASE_KEY: "sb_publishable_QX3ZNgzic5gASzHK2KYk4g_X320_k8n",      // "anon public key" atau "publishable key" (aman ditaruh di sini)
+    // 3 kasir. Isi "number" saat kasirnya sudah ada (boleh 0812-3456-7890 atau 62812...).
+    // Ganti shift: ubah "bertugas" menjadi true (masuk) atau false (pulang), atau ganti nama/nomornya.
+    KASIR: [
+      { name: "Kasir 1", number: "", bertugas: true },
+      { name: "Kasir 2", number: "", bertugas: true },
+      { name: "Kasir 3", number: "", bertugas: true }
+    ]
+  };
+  // Paket. Ubah harga/durasi di sini.
+  var PACKAGES = [
+    { id: "a",      name: "Paket A",       session: 2, prep: 3, strips: 1, price: 7000 },
+    { id: "duo",    name: "Paket Duo",     session: 3, prep: 4, strips: 1, price: 14000,
+      upgrade: { strips: 2, price: 15000 } },
+    { id: "group1", name: "Paket Group 1", session: 5, prep: 4, strips: 2, price: 19000,
+      people: 6, extraPer: 2, extraFee: 4000, maxPeople: 10 },
+    { id: "group2", name: "Paket Group 2", session: 5, prep: 6, strips: 3, price: 20000,
+      people: 6, extraPer: 2, extraFee: 4000, maxPeople: 10 }
+  ];
+  // people = jumlah orang yang sudah termasuk di harga. maxPeople = batas total orang (6 + maksimal 4 tambahan = 10). Tiap tambah extraPer orang = + extraFee (ganjil dibulatkan ke atas).
+  // Cara bayar. QRIS dimatikan dulu. Nanti untuk mengaktifkan, tambahkan baris:
+  // { id: "qris", label: "QRIS", note: "Scan QRIS di kasir." }
+  var PAY_METHODS = [
+    { id: "tunai", label: "Tunai di kasir", note: "Bayar langsung saat tiba di studio." }
+  ];
+  // ===============================================
+
+  var app = document.getElementById("app");
+
+  // ---------- Util ----------
+  function rp(n) { return "Rp" + n.toLocaleString("id-ID"); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
+  // Biaya tambahan orang (hanya paket yang punya "people")
+  function extraFor(p, n) {
+    return p.people ? Math.ceil(Math.max(0, n - p.people) / p.extraPer) * p.extraFee : 0;
+  }
+  function pkgById(id) { return PACKAGES.filter(function (p) { return p.id === id; })[0]; }
+  function payById(id) { return PAY_METHODS.filter(function (m) { return m.id === id; })[0] || PAY_METHODS[0]; }
+  function dateKey(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function dateLabel(key) {
+    var p = key.split("-");
+    return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+  }
+
+  // ---------- Kasir & WhatsApp ----------
+  function toWa(n) {
+    var d = String(n || "").replace(/\D/g, "");
+    if (!d) return "";
+    if (d.indexOf("0") === 0) d = "62" + d.slice(1);
+    else if (d.indexOf("8") === 0) d = "62" + d;
+    return d.length >= 10 && d.length <= 15 ? d : "";
+  }
+  // state: "ok" (bisa dichat), "soon" (nomor belum diisi), "off" (tidak bertugas)
+  function kasirInfo(i) {
+    var k = CONFIG.KASIR[i];
+    if (!k) return null;
+    var wa = toWa(k.number);
+    return { name: k.name, wa: wa, state: !wa ? "soon" : (k.bertugas === false ? "off" : "ok") };
+  }
+  function waUrl(i, text) {
+    var k = kasirInfo(i);
+    return k && k.state === "ok" ? "https://wa.me/" + k.wa + (text ? "?text=" + encodeURIComponent(text) : "") : "#";
+  }
+  function fmtWa(n) { return n.indexOf("62") === 0 ? "0" + n.slice(2) : "+" + n; }
+
+  // Deretan tombol, satu per kasir
+  function kasirButtons(o) {
+    return '<div class="wa-list">' + CONFIG.KASIR.map(function (_, i) {
+      var cls = "btn" + (o.ghost ? " ghost" : "");
+      var attrs = ' data-kasir="' + i + '" data-prefix="' + esc(o.prefix || "WhatsApp ") + '"';
+      if (o.tag === "button") return '<button class="' + cls + '" type="button"' + attrs + ">Kasir</button>";
+      return '<a class="' + cls + '" href="#" target="_blank" rel="noopener"' + attrs + ' data-wa-text="' + esc(o.text || "") + '">Kasir</a>';
+    }).join("") + "</div>";
+  }
+  // Isi teks dan status semua tombol kasir di halaman
+  function paintKasir() {
+    var nodes = document.querySelectorAll("[data-kasir]");
+    for (var n = 0; n < nodes.length; n++) {
+      var el = nodes[n], k = kasirInfo(+el.getAttribute("data-kasir"));
+      if (!k) continue;
+      var suffix = k.state === "soon" ? " (segera tersedia)" : k.state === "off" ? " (tidak bertugas)" : "";
+      el.textContent = (k.state === "ok" ? (el.getAttribute("data-prefix") || "") : "") + k.name + suffix;
+      el.classList.toggle("off", k.state !== "ok");
+      if (el.tagName === "BUTTON") el.disabled = k.state !== "ok";
+      else el.setAttribute("aria-disabled", String(k.state !== "ok"));
+    }
+    var foot = document.getElementById("footWa");
+    if (foot) {
+      var live = [];
+      for (var i = 0; i < CONFIG.KASIR.length; i++) {
+        var x = kasirInfo(i);
+        if (x.state === "ok") live.push(esc(x.name) + " " + esc(fmtWa(x.wa)));
+      }
+      foot.innerHTML = live.length ? "WhatsApp: " + live.join(" · ") : "Nomor WhatsApp kasir segera tersedia";
+    }
+  }
+  // Tautan WhatsApp diisi saat diklik
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("a[data-kasir]");
+    if (!a) return;
+    var i = +a.getAttribute("data-kasir");
+    if (waUrl(i) === "#") { e.preventDefault(); return; }
+    a.href = waUrl(i, a.getAttribute("data-wa-text"));
+  });
+
+  // ---------- Database (Supabase) ----------
+  // Ambil hanya alamat dasarnya (https://xxxx.supabase.co), tambahan seperti /rest/v1/ dibuang otomatis
+  function baseUrl() {
+    var m = String(CONFIG.SUPABASE_URL || "").trim().match(/^https?:\/\/[^\/\s]+/i);
+    return m ? m[0] : "";
+  }
+  function rpc(fn, args) {
+    if (!baseUrl() || !CONFIG.SUPABASE_KEY) return Promise.reject(new Error("NOT_CONFIGURED"));
+    return fetch(baseUrl() + "/rest/v1/rpc/" + fn, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: CONFIG.SUPABASE_KEY },
+      body: JSON.stringify(args || {})
+    }).then(function (r) { return r.json(); });
+  }
+
+  // Salinan tiket di HP pelanggan, supaya mudah dibuka lagi. Data resmi ada di database.
+  function loadTickets() { try { return JSON.parse(localStorage.getItem("c3_tickets") || "[]"); } catch (e) { return []; } }
+  function saveTickets(a) { try { localStorage.setItem("c3_tickets", JSON.stringify(a)); } catch (e) {} }
+  function rememberTicket(t) {
+    var all = loadTickets().filter(function (x) { return x.code !== t.code; });
+    all.push(t);
+    saveTickets(all);
+  }
+
+  function barsSvg(code) {
+    var x = 0, out = "";
+    for (var i = 0; i < code.length; i++) {
+      var c = code.charCodeAt(i);
+      for (var k = 0; k < 4; k++) {
+        var w = ((c >> k) & 3) + 1;
+        if (k % 2 === 0) out += '<rect x="' + x + '" y="0" width="' + w + '" height="44"/>';
+        x += w + 1;
+      }
+      x += 3;
+    }
+    return '<svg class="bars" viewBox="0 0 ' + x + ' 44" preserveAspectRatio="none" aria-hidden="true">' + out + "</svg>";
+  }
+
+  // ---------- Ilustrasi photo strip ----------
+  function stripSvg() {
+    var bgs = ["var(--f1)", "var(--f2)", "var(--f3)", "var(--f4)"];
+    function person(cx, cy, r, skin) {
+      return '<ellipse cx="' + cx + '" cy="' + (cy + r * 2.3) + '" rx="' + (r * 1.5) + '" ry="' + (r * 1.1) + '" style="fill:var(--gold)"/>' +
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + skin + '"/>' +
+        '<circle cx="' + (cx - r * .35) + '" cy="' + (cy - r * .1) + '" r="' + (r * .1) + '" style="fill:var(--ink)"/>' +
+        '<circle cx="' + (cx + r * .35) + '" cy="' + (cy - r * .1) + '" r="' + (r * .1) + '" style="fill:var(--ink)"/>' +
+        '<path d="M' + (cx - r * .4) + " " + (cy + r * .3) + " Q" + cx + " " + (cy + r * .75) + " " + (cx + r * .4) + " " + (cy + r * .3) + '" style="stroke:var(--ink)" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+    }
+    var frames = [
+      person(100, 62, 17, "#e8b27a"),
+      person(78, 180, 15, "#c98a56") + person(124, 184, 15, "#f0c391"),
+      person(100, 298, 17, "#e8b27a") + '<circle cx="62" cy="282" r="7" fill="#e8b27a"/><circle cx="138" cy="282" r="7" fill="#e8b27a"/>',
+      person(62, 416, 13, "#f0c391") + person(100, 420, 14, "#c98a56") + person(138, 416, 13, "#e8b27a")
+    ];
+    var s = '<svg viewBox="0 0 200 520" role="img" aria-label="Ilustrasi photo strip">' +
+      '<rect width="200" height="520" rx="10" style="fill:var(--gold-deep)"/>';
+    for (var i = 0; i < 4; i++) {
+      var y = 20 + i * 118;
+      s += '<g><rect x="20" y="' + y + '" width="160" height="104" rx="4" style="fill:' + bgs[i] + '"/>' +
+        '<clipPath id="f' + i + '"><rect x="20" y="' + y + '" width="160" height="104" rx="4"/></clipPath>' +
+        '<g clip-path="url(#f' + i + ')">' + frames[i] + "</g></g>";
+    }
+    s += '<text x="100" y="505" text-anchor="middle" font-family="Unbounded, sans-serif" font-weight="800" font-size="13" style="fill:var(--strip-label)">Studio C3</text></svg>';
+    return s;
+  }
+
+  // ---------- Halaman: Beranda ----------
+  function renderHome(target) {
+    var cards = PACKAGES.map(function (p) {
+      var isDuo = !!p.upgrade;
+      return '<article class="stub' + (p.id === "group2" ? " best" : "") + '">' +
+        "<h3>" + esc(p.name) + "</h3>" +
+        '<div class="price">' + rp(p.price) + "</div>" +
+        '<div class="cut"></div>' +
+        "<ul>" +
+          "<li><span>Sesi foto</span><b>" + p.session + " menit</b></li>" +
+          "<li><span>Persiapan</span><b>" + p.prep + " menit</b></li>" +
+          "<li><span>Photo strip</span><b>" + p.strips + "</b></li>" +
+          (p.people ? "<li><span>Jumlah orang</span><b>" + p.people + " orang</b></li>" : "") +
+          "<li><span>Soft file</span><b>Gratis</b></li>" +
+        "</ul>" +
+        (isDuo ? '<div class="deal">Mau 2 photo strip? Cukup ' + rp(p.upgrade.price) + ".</div>" : "") +
+        (p.people ? '<div class="deal">Lebih dari ' + p.people + " orang? Tiap tambah " + p.extraPer + " orang + " + rp(p.extraFee) + " (maksimal " + p.maxPeople + " orang).</div>" : "") +
+        '<a class="btn block" href="#/bayar/' + p.id + '">Pilih ' + esc(p.name) + "</a>" +
+        "</article>";
+    }).join("");
+
+    app.innerHTML =
+      '<section class="hero"><div class="wrap">' +
+        "<div>" +
+          "<h1>Masuk, bergaya, bawa pulang strip-nya.</h1>" +
+          '<p class="lead">Photo booth Studio C3 dengan paket dari ' + rp(7000) + ". Soft file gratis di semua paket. Ambil tiket antrean dari rumah, lalu tunjukkan kodenya dan bayar tunai di kasir.</p>" +
+          '<div class="actions"><a class="btn" href="#/paket">Lihat paket</a><a class="btn ghost" href="#/tiket">Tiket saya</a></div>' +
+        "</div>" +
+        '<div class="strip-art">' + stripSvg() + "</div>" +
+      "</div></section>" +
+
+      '<section class="packages" id="paket"><div class="wrap">' +
+        '<div class="section-head"><h2>Pilih paket</h2><p>Semua harga sudah termasuk soft file. Waktu persiapan dihitung terpisah dari waktu sesi foto.</p></div>' +
+        '<div class="grid">' + cards + "</div>" +
+      "</div></section>" +
+
+      '<section class="how"><div class="wrap">' +
+        "<h2>Dari pilih paket sampai foto</h2>" +
+        '<ol class="steps">' +
+          "<li><h3>Pilih paket</h3><p>Tekan tombol Pilih pada paket yang Anda mau.</p></li>" +
+          "<li><h3>Ambil tiket</h3><p>Tiket antrean dibatasi " + CONFIG.MAX_TICKETS + " per hari dan nomornya unik. Kalau sudah habis, ambil untuk besok. Mau pilih jadwal sendiri? Pilih Booking lewat WhatsApp kasir.</p></li>" +
+          "<li><h3>Tunjukkan kode dan bayar</h3><p>Kasir mengecek kode tiket Anda di sistem, lalu Anda bayar tunai.</p></li>" +
+        "</ol>" +
+      "</div></section>" +
+
+      '<section class="contact" id="kontak"><div class="wrap"><div class="contact-card">' +
+        "<div><h2>Ada pertanyaan?</h2><p>Chat kasir yang sedang bertugas lewat WhatsApp.</p></div>" +
+        kasirButtons({ text: "Halo Studio C3, saya mau bertanya." }) +
+      "</div></div></section>";
+
+    paintKasir();
+    if (target) {
+      var el = document.getElementById(target);
+      if (el) el.scrollIntoView();
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }
+
+  // ---------- Halaman: Pembayaran ----------
+  function renderCheckout(id) {
+    var p = pkgById(id);
+    if (!p) { location.hash = "#/"; return; }
+
+    var upgradeBox = p.upgrade ?
+      '<fieldset><legend>Jumlah photo strip</legend>' +
+        '<label class="opt"><input type="radio" name="strips" value="' + p.strips + '" checked><span><b>' + p.strips + " photo strip</b><small>" + rp(p.price) + "</small></span></label>" +
+        '<label class="opt"><input type="radio" name="strips" value="' + p.upgrade.strips + '"><span><b>' + p.upgrade.strips + " photo strip</b><small>" + rp(p.upgrade.price) + " (lebih hemat)</small></span></label>" +
+      "</fieldset>" : "";
+
+    var peopleBox = "";
+    if (p.people) {
+      var opts = "";
+      for (var n = p.people; n <= p.maxPeople; n++) {
+        var ex = extraFor(p, n);
+        opts += '<option value="' + n + '">' + n + " orang" + (ex ? " (+" + rp(ex) + ")" : "") + "</option>";
+      }
+      peopleBox = '<fieldset class="field"><legend>Jumlah orang yang difoto</legend>' +
+        '<select id="people" aria-label="Jumlah orang">' + opts + "</select>" +
+        "<small>Harga paket sudah termasuk " + p.people + " orang. Tiap tambah " + p.extraPer + " orang + " + rp(p.extraFee) + ". Maksimal " + p.maxPeople + " orang.</small></fieldset>";
+    }
+
+    var payBox = PAY_METHODS.length > 1
+      ? PAY_METHODS.map(function (m, i) {
+          return '<label class="opt"><input type="radio" name="pay" value="' + m.id + '"' + (i === 0 ? " checked" : "") + '><span><b>' + esc(m.label) + "</b><small>" + esc(m.note) + "</small></span></label>";
+        }).join("")
+      : '<div class="paynote"><b>' + esc(PAY_METHODS[0].label) + "</b><br>" + esc(PAY_METHODS[0].note) + "</div>";
+
+    app.innerHTML =
+      '<div class="page"><div class="wrap">' +
+        '<a class="back" href="#/paket">&larr; Kembali ke paket</a>' +
+        "<h1>Pembayaran</h1>" +
+        '<div class="co-grid">' +
+          '<form id="form" novalidate>' +
+            "<fieldset><legend>Cara mengambil giliran</legend>" +
+              '<label class="opt"><input type="radio" name="mode" value="tiket" disabled><span><b>Ambil tiket antrean</b><small id="quotaText">Memeriksa kuota...</small></span></label>' +
+              '<div class="notice hidden" id="tomorrowNote">Tiket hari ini sudah habis, jadi tiket ini berlaku untuk besok.</div>' +
+              '<label class="opt" style="margin-top:.6rem"><input type="radio" name="mode" value="booking" checked><span><b>Booking jadwal</b><small>Atur hari dan jam lewat WhatsApp kasir.</small></span></label>' +
+            "</fieldset>" +
+            upgradeBox +
+            peopleBox +
+            '<fieldset class="field" id="nameBox"><legend>Nama</legend>' +
+              '<input type="text" id="name" maxlength="30" autocomplete="given-name" placeholder="Nama panggilan Anda">' +
+              "<small>Dicetak di tiket supaya mudah dipanggil.</small>" +
+            "</fieldset>" +
+            '<fieldset id="payBox"><legend>Cara bayar</legend>' + payBox + "</fieldset>" +
+            '<p id="formError" class="notice hidden" role="alert"></p>' +
+            '<button class="btn block" type="submit" id="submitBtn">Ambil tiket</button>' +
+            '<div id="bookBtns" class="hidden">' +
+              '<p class="book-note">Pilih kasir untuk mengatur hari dan jam booking:</p>' +
+              kasirButtons({ tag: "button", prefix: "Booking via " }) +
+            "</div>" +
+          "</form>" +
+
+          '<aside class="summary"><h2>Ringkasan</h2>' +
+            "<dl>" +
+              "<div><dt>Paket</dt><dd>" + esc(p.name) + "</dd></div>" +
+              "<div><dt>Sesi foto</dt><dd>" + p.session + " menit</dd></div>" +
+              "<div><dt>Persiapan</dt><dd>" + p.prep + " menit</dd></div>" +
+              '<div><dt>Photo strip</dt><dd id="sumStrips">' + p.strips + "</dd></div>" +
+              (p.people ? '<div><dt>Jumlah orang</dt><dd id="sumPeople"></dd></div><div id="sumExtraRow" class="hidden"><dt>Tambahan orang</dt><dd id="sumExtra"></dd></div>' : "") +
+              "<div><dt>Soft file</dt><dd>Gratis</dd></div>" +
+            "</dl>" +
+            '<div class="total"><span>Total</span><b id="sumTotal">' + rp(p.price) + "</b></div>" +
+          "</aside>" +
+        "</div>" +
+      "</div></div>";
+
+    var form = document.getElementById("form");
+    var tiketRadio = form.querySelector('input[name="mode"][value="tiket"]');
+    var userTouchedMode = false, busy = false;
+
+    function val(name) { var el = form.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : null; }
+    function current() {
+      var strips = p.strips, price = p.price, people = null, extra = 0;
+      if (p.upgrade && +val("strips") === p.upgrade.strips) { strips = p.upgrade.strips; price = p.upgrade.price; }
+      if (p.people) {
+        people = +document.getElementById("people").value;
+        extra = extraFor(p, people);
+        price += extra;
+      }
+      return { strips: strips, price: price, people: people, extra: extra };
+    }
+    function showError(msg) {
+      var err = document.getElementById("formError");
+      err.textContent = msg;
+      err.classList.remove("hidden");
+    }
+    function refresh() {
+      var c = current(), mode = val("mode");
+      document.getElementById("sumStrips").textContent = c.strips;
+      if (p.people) {
+        document.getElementById("sumPeople").textContent = c.people + " orang";
+        document.getElementById("sumExtraRow").classList.toggle("hidden", !c.extra);
+        document.getElementById("sumExtra").textContent = "+" + rp(c.extra);
+      }
+      document.getElementById("sumTotal").textContent = rp(c.price);
+      document.getElementById("payBox").classList.toggle("hidden", mode === "booking");
+      document.getElementById("submitBtn").classList.toggle("hidden", mode === "booking");
+      document.getElementById("submitBtn").textContent = busy ? "Membuat tiket..." : "Ambil tiket";
+      document.getElementById("bookBtns").classList.toggle("hidden", mode !== "booking");
+      document.querySelector("#nameBox legend").textContent = mode === "booking" ? "Nama (opsional)" : "Nama";
+    }
+    form.addEventListener("change", function (e) {
+      if (e.target && e.target.name === "mode") userTouchedMode = true;
+      refresh();
+    });
+    refresh();
+
+    // Cek kuota ke database
+    var quotaText = document.getElementById("quotaText");
+    rpc("quota").then(function (res) {
+      if (!res.ok) throw new Error("quota");
+      if (res.pick) {
+        quotaText.textContent = "Sisa " + res.pick.left + " dari " + res.max + " tiket untuk " + dateLabel(res.pick.date) + ".";
+        tiketRadio.disabled = false;
+        document.getElementById("tomorrowNote").classList.toggle("hidden", !res.pick.tomorrow);
+        if (!userTouchedMode) tiketRadio.checked = true;
+      } else {
+        quotaText.textContent = "Tiket hari ini dan besok sudah habis. Silakan booking lewat WhatsApp kasir.";
+      }
+      refresh();
+    }).catch(function (err) {
+      quotaText.textContent = err && err.message === "NOT_CONFIGURED"
+        ? "Sistem tiket belum disambungkan. Gunakan booking lewat WhatsApp kasir."
+        : "Tidak bisa memeriksa kuota. Periksa koneksi Anda, atau gunakan booking lewat WhatsApp kasir.";
+    });
+
+    // Booking: buka WhatsApp kasir pilihan dengan pesan terisi
+    function openBooking(i) {
+      if (waUrl(i) === "#") return;
+      var c = current();
+      var name = document.getElementById("name").value.trim();
+      var msg = "Halo " + CONFIG.KASIR[i].name + ", saya mau booking di Studio C3.\n" +
+        "Paket: " + p.name + " (" + c.strips + " photo strip" + (c.people ? ", " + c.people + " orang" : "") + ", " + rp(c.price) + ")\n" +
+        (name ? "Nama: " + name + "\n" : "") +
+        "Hari/jam yang diinginkan: ";
+      window.open(waUrl(i, msg), "_blank", "noopener");
+    }
+    document.getElementById("bookBtns").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-kasir]");
+      if (b && !b.disabled) openBooking(+b.getAttribute("data-kasir"));
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (busy || val("mode") === "booking") return;
+      var c = current();
+      var name = document.getElementById("name").value.trim();
+      document.getElementById("formError").classList.add("hidden");
+      if (!name) {
+        showError("Isi nama Anda dulu supaya tiket bisa dibuat.");
+        document.getElementById("name").focus();
+        return;
+      }
+      busy = true;
+      document.getElementById("submitBtn").disabled = true;
+      refresh();
+      rpc("create_ticket", {
+        p_pkg: p.id, p_strips: c.strips, p_name: name, p_people: c.people,
+        p_pay: PAY_METHODS.length > 1 ? val("pay") : PAY_METHODS[0].id
+      }).then(function (res) {
+        if (!res.ok) throw new Error(res.error || (res.message ? "Sistem belum siap. Detail: " + (res.code || "") + " " + res.message : "Gagal membuat tiket."));
+        rememberTicket(res.ticket);
+        location.hash = "#/tiket/" + res.ticket.code;
+      }).catch(function (err) {
+        busy = false;
+        document.getElementById("submitBtn").disabled = false;
+        refresh();
+        var m = err && err.message ? err.message : "";
+        var known = m && m !== "NOT_CONFIGURED" && m.indexOf("Failed to fetch") === -1 && m.indexOf("NetworkError") === -1 && m.indexOf("Unexpected") === -1 && m.indexOf("Load failed") === -1;
+        showError(known ? m : "Tidak bisa terhubung ke sistem tiket. Coba lagi, atau booking lewat WhatsApp kasir.");
+      });
+    });
+
+    paintKasir();
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Halaman: Tiket ----------
+  function badgeClass(status) {
+    return status === "Lunas" ? "badge paid" : (status === "Sudah dipakai" || status === "Batal") ? "badge done" : "badge";
+  }
+
+  function ticketMessage(t) {
+    return "Halo Kasir Studio C3, ini tiket saya.\n" +
+      "Kode: " + t.code + "\n" +
+      "Nama: " + t.name + "\n" +
+      "Paket: " + t.pkgName + " (" + t.strips + " photo strip" + (t.people ? ", " + t.people + " orang" : "") + ")\n" +
+      "Tanggal: " + dateLabel(t.date) + "\n" +
+      "Antrean: " + ("0" + t.queue).slice(-2) + "\n" +
+      "Total: " + rp(t.price) + " (" + payById(t.pay).label + ")";
+  }
+
+  function ticketHtml(t) {
+    var pad = function (n) { return ("0" + n).slice(-2); };
+    var when = t.date === dateKey(new Date()) ? "Hari ini" : dateLabel(t.date);
+    return '<article class="ticket" data-code="' + esc(t.code) + '">' +
+      '<div class="head"><b>Studio C3</b><span>' + esc(when) + "</span></div>" +
+      '<div class="body">' +
+        '<div class="code">' + esc(t.code) + "</div>" +
+        '<div class="queue">Antrean ' + pad(t.queue) + " dari " + CONFIG.MAX_TICKETS + ' <span class="' + badgeClass(t.status) + '" data-badge>' + esc(t.status || "Menunggu bayar") + "</span></div>" +
+        "<dl>" +
+          "<div><dt>Nama</dt><dd>" + esc(t.name) + "</dd></div>" +
+          "<div><dt>Tanggal</dt><dd>" + esc(dateLabel(t.date)) + "</dd></div>" +
+          "<div><dt>Paket</dt><dd>" + esc(t.pkgName) + "</dd></div>" +
+          "<div><dt>Photo strip</dt><dd>" + t.strips + "</dd></div>" +
+          (t.people ? "<div><dt>Jumlah orang</dt><dd>" + t.people + " orang</dd></div>" : "") +
+          "<div><dt>Total</dt><dd>" + rp(t.price) + "</dd></div>" +
+          "<div><dt>Cara bayar</dt><dd>" + esc(payById(t.pay).label) + "</dd></div>" +
+        "</dl>" +
+      "</div>" +
+      '<div class="tear"></div>' +
+      '<div class="foot">' + barsSvg(t.code) +
+        '<ol class="howto"><li>Tunjukkan kode ini ke kasir saat tiba. Kasir mengecek kodenya di sistem.</li><li>Bayar tunai di kasir.</li><li>Tunggu nomor antrean Anda dipanggil.</li></ol>' +
+        '<div class="send-box"><p>Beri tahu kasir lewat WhatsApp (opsional):</p>' + kasirButtons({ text: ticketMessage(t), prefix: "Kirim ke " }) + "</div>" +
+        '<div class="ticket-actions"><button class="btn ghost" type="button" data-copy="' + esc(t.code) + '">Salin kode</button></div>' +
+      "</div>" +
+    "</article>";
+  }
+
+  // Perbarui status tiket dari database (Lunas, Sudah dipakai, dll.)
+  function syncStatus(code) {
+    rpc("get_ticket", { p_code: code }).then(function (res) {
+      if (!res.ok) return;
+      rememberTicket(res.ticket);
+      var badge = document.querySelector('.ticket[data-code="' + code + '"] [data-badge]');
+      if (badge) { badge.textContent = res.ticket.status; badge.className = badgeClass(res.ticket.status); }
+    }).catch(function () {});
+  }
+
+  function pageShell(title, inner, note) {
+    app.innerHTML = '<div class="page"><div class="wrap">' +
+      '<a class="back" href="#/">&larr; Beranda</a><h1>' + title + "</h1>" +
+      (note ? '<p style="margin-top:.8rem;max-width:34rem">' + note + "</p>" : "") +
+      inner + "</div></div>";
+    paintKasir();
+    window.scrollTo(0, 0);
+  }
+
+  function renderTickets(code) {
+    var all = loadTickets().sort(function (a, b) { return a.createdAt < b.createdAt ? 1 : -1; });
+    var emptyHtml = function (msg) {
+      return '<div class="empty"><p>' + msg + '</p><a class="btn" href="#/paket">Pilih paket</a></div>';
+    };
+
+    if (!code) {
+      var shown = all.slice(0, 10);
+      pageShell("Tiket saya", shown.length ? '<div class="tickets">' + shown.map(ticketHtml).join("") + "</div>" : emptyHtml("Belum ada tiket di perangkat ini."));
+      shown.forEach(function (t) { syncStatus(t.code); });
+      return;
+    }
+
+    code = code.toUpperCase();
+    var note = "Simpan tangkapan layar tiket ini. Kodenya akan dicek oleh kasir.";
+    var local = all.filter(function (t) { return t.code === code; })[0];
+    if (local) {
+      pageShell("Tiket Anda", '<div class="tickets">' + ticketHtml(local) + "</div>", note);
+      syncStatus(code);
+      return;
+    }
+    // Tidak ada di perangkat ini: cari di database
+    pageShell("Tiket Anda", '<p style="margin-top:1rem">Memuat tiket...</p>');
+    rpc("get_ticket", { p_code: code }).then(function (res) {
+      if (!res.ok) throw new Error("notfound");
+      rememberTicket(res.ticket);
+      pageShell("Tiket Anda", '<div class="tickets">' + ticketHtml(res.ticket) + "</div>", note);
+    }).catch(function () {
+      pageShell("Tiket Anda", emptyHtml("Tiket dengan kode ini tidak ditemukan."));
+    });
+  }
+
+  // Salin kode
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-copy]");
+    if (!b) return;
+    var text = b.getAttribute("data-copy");
+    function done() { var old = b.textContent; b.textContent = "Tersalin"; setTimeout(function () { b.textContent = old; }, 1500); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+    }
+  });
+
+  // ---------- Router ----------
+  function route() {
+    var h = location.hash.replace(/^#/, "") || "/";
+    var parts = h.split("/").filter(Boolean);
+    if (parts[0] === "bayar" && parts[1]) return renderCheckout(parts[1]);
+    if (parts[0] === "tiket") return renderTickets(parts[1] || null);
+    if (parts[0] === "paket") return renderHome("paket");
+    if (parts[0] === "kontak") return renderHome("kontak");
+    renderHome(false);
+  }
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
+</body>
+</html>
