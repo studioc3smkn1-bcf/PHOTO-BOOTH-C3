@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>QR — Studio C3</title>
+<style>
+  html, body { height: 100%; margin: 0; background: #fff; }
+  body { display: grid; place-items: center; font-family: system-ui, sans-serif; color: #333; }
+  #box svg { display: block; width: min(92vw, 92vh, 720px); height: auto; }
+  p { margin: 0; text-align: center; padding: 1rem; }
+</style>
+</head>
+<body>
+<div id="box"></div>
+<script src="config.js"></script>
+<script src="qr.js"></script>
+<script>
+(function () {
+  var box = document.getElementById("box");
+  var code = (new URLSearchParams(location.search).get("kode") || "").trim().toLowerCase();
+  if (!code || !/^[a-z0-9-]{6,60}$/.test(code)) { box.innerHTML = "<p>Kode tidak valid.</p>"; return; }
+  // Alamat galeri berada di folder yang sama dengan halaman ini
+  var link = new URL("galeri.html", location.href);
+  link.search = "?kode=" + encodeURIComponent(code);
+  try { box.innerHTML = QR.toSvg(link.href, { label: "QR code folder foto" }); }
+  catch (e) { box.innerHTML = "<p>Gagal membuat QR.</p>"; }
+})();
+</script>
+</body>
+</html>
