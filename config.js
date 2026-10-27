@@ -2,8 +2,8 @@
    Dipakai oleh galeri.html, qr.html, dan editor.html.
    Nilainya sama dengan yang dipakai website tiket Studio C3 (satu proyek Supabase). */
 window.C3 = {
-  SUPABASE_URL: "",   // contoh: https://abcdefghij.supabase.co  (tambahan seperti /rest/v1/ otomatis dibuang)
-  SUPABASE_KEY: ""    // Publishable key (diawali sb_publishable_). JANGAN pakai Secret key.
+  SUPABASE_URL: "https://qswzamffenpwslpzvypa.supabase.co",   // contoh: https://abcdefghij.supabase.co  (tambahan seperti /rest/v1/ otomatis dibuang)
+  SUPABASE_KEY: "sb_publishable_QX3ZNgzic5gASzHK2KYk4g_X320_k8n"    // Publishable key (diawali sb_publishable_). JANGAN pakai Secret key.
 };
 /* ================= Bagian di bawah ini tidak perlu diubah ================= */
 (function () {
