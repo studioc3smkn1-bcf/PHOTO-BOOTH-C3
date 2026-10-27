@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffd21f">
+<title>Editor soft file — Studio C3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #ffd21f; --cream: #fff8d6; --gold: #7a5900; --gold-deep: #4f3a00; --ink: #2b2000;
+    --line: rgba(122, 89, 0, .45); --good: #17692c; --bad: #9b1c1c;
+    --font-head: "Unbounded", "Trebuchet MS", system-ui, sans-serif;
+    --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--yellow); color: var(--ink); font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.5; }
+  h1, h2, h3 { font-family: var(--font-head); margin: 0; line-height: 1.15; letter-spacing: -0.02em; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .wrap { width: min(860px, 100% - 2rem); margin-inline: auto; padding: 1.2rem 0 3rem; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.4rem; }
+  header h1 { font-size: 1.3rem; font-weight: 800; }
+  .btn { border: 0; cursor: pointer; background: var(--gold); color: var(--cream); font: inherit; font-weight: 700; padding: .8rem 1.3rem;
+    border-radius: 999px; text-decoration: none; display: inline-block; text-align: center; }
+  .btn:hover { background: var(--gold-deep); }
+  .btn.ghost { background: transparent; color: var(--gold-deep); border: 2px solid var(--gold); }
+  .btn.ghost:hover { background: rgba(122, 89, 0, .1); }
+  .btn.small { padding: .45rem .9rem; font-size: .92rem; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+  .btn.danger { background: transparent; color: var(--bad); border: 2px solid var(--bad); }
+  .card { background: var(--cream); border: 2px solid var(--gold); border-radius: 20px; padding: 1.3rem; margin-bottom: 1.3rem; }
+  .card h2 { font-size: 1.05rem; margin-bottom: .9rem; }
+  .card h3 { font-size: .95rem; margin: 1.2rem 0 .6rem; }
+  input[type=text], input[type=email], input[type=password] {
+    width: 100%; font: inherit; padding: .8rem 1rem; border-radius: 12px; border: 2px solid var(--line); background: #fffdf0; color: var(--ink);
+  }
+  input:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px var(--gold); }
+  .stack { display: grid; gap: .7rem; }
+  .row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  .msg { margin: .8rem 0 0; font-weight: 500; }
+  .msg.err { color: var(--bad); }
+  .msg.ok { color: var(--good); }
+  .hidden { display: none !important; }
+  .hint { font-size: .92rem; color: var(--gold-deep); margin: .5rem 0 0; }
+
+  .code { font-family: var(--font-head); font-weight: 800; font-size: clamp(1.1rem, 4.6vw, 1.7rem); color: var(--gold-deep); word-break: break-all; }
+  .meta { margin: .3rem 0 .9rem; color: var(--gold-deep); }
+  .active-top { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: start; }
+  #aQrBox svg { display: block; width: 120px; height: 120px; border: 2px solid var(--line); border-radius: 8px; }
+  @media (max-width: 520px) { .active-top { grid-template-columns: 1fr; } }
+
+  .q { display: grid; grid-template-columns: 1fr auto; gap: .2rem .8rem; padding: .5rem 0; border-bottom: 1px solid var(--line); font-size: .95rem; }
+  .q .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .q progress { grid-column: 1 / -1; width: 100%; height: 8px; accent-color: var(--gold); }
+  .q .st.bad { color: var(--bad); font-weight: 700; }
+  .q .st.good { color: var(--good); font-weight: 700; }
+
+  .frow { display: grid; grid-template-columns: 56px 1fr auto; gap: .7rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line); }
+  .frow img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: rgba(122, 89, 0, .12); }
+  .frow .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .frow small { display: block; color: var(--gold-deep); }
+
+  .fl { display: grid; gap: .3rem; padding: .7rem 0; border-bottom: 1px solid var(--line); }
+  .fl .top { display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; align-items: baseline; }
+  .fl .c { font-family: var(--font-head); font-weight: 700; font-size: .85rem; word-break: break-all; }
+  .fl .s { color: var(--gold-deep); font-size: .92rem; }
+  .fl .exp { color: var(--bad); font-weight: 700; }
+  .fl .row { margin-top: .2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Editor Soft File</h1>
+    <button class="btn ghost small hidden" id="logout" type="button">Keluar</button>
+  </header>
+
+  <section class="card" id="login">
+    <h2>Masuk editor</h2>
+    <form id="loginForm" class="stack">
+      <input type="email" id="email" placeholder="Email editor" autocomplete="username" aria-label="Email editor">
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" aria-label="Password">
+      <button class="btn" type="submit">Masuk</button>
+    </form>
+    <p class="msg err hidden" id="loginErr" role="alert"></p>
+  </section>
+
+  <div id="panel" class="hidden">
+    <section class="card">
+      <h2>Folder pelanggan baru</h2>
+      <form id="newForm" class="stack">
+        <input type="text" id="note" maxlength="60" placeholder="Nama pelanggan (opsional)" aria-label="Nama pelanggan">
+        <input type="text" id="ticket" maxlength="20" placeholder="Kode tiket C3-XXXXXX (opsional)" aria-label="Kode tiket" autocapitalize="characters">
+        <button class="btn" type="submit" id="newBtn">Buat folder dan kode</button>
+      </form>
+      <p class="msg err hidden" id="newErr" role="alert"></p>
+    </section>
+
+    <section class="card hidden" id="active">
+      <div class="active-top">
+        <div>
+          <h2>Folder aktif</h2>
+          <div class="code" id="aCode"></div>
+          <p class="meta" id="aMeta"></p>
+        </div>
+        <div id="aQrBox"></div>
+      </div>
+      <div class="row">
+        <button class="btn ghost small" id="copyCode" type="button">Salin kode</button>
+        <a class="btn small" id="aQr" href="#" target="_blank" rel="noopener">Buka halaman QR</a>
+        <button class="btn ghost small" id="copyQr" type="button">Salin link QR</button>
+        <button class="btn ghost small" id="copyGal" type="button">Salin link galeri</button>
+        <button class="btn ghost small" id="sendWa" type="button">Kirim lewat WhatsApp</button>
+      </div>
+
+      <h3>Unggah foto</h3>
+      <input type="file" id="file" class="hidden" multiple accept="image/jpeg,image/png,image/webp">
+      <button class="btn" id="pick" type="button">Pilih foto yang sudah diedit</button>
+      <p class="hint">JPG, PNG, atau WebP. Maksimal 15 MB per foto. Foto diunggah satu per satu dalam kualitas asli.</p>
+      <div id="queue"></div>
+      <p class="msg hidden" id="upMsg" role="status"></p>
+
+      <h3>Foto di folder ini</h3>
+      <div id="files"></div>
+    </section>
+
+    <section class="card">
+      <h2>Folder terbaru</h2>
+      <div id="folders"><p class="hint">Memuat...</p></div>
+      <div class="row" style="margin-top:.9rem">
+        <button class="btn danger small" id="purge" type="button">Hapus folder kedaluwarsa</button>
+      </div>
+      <p class="msg hidden" id="listMsg" role="status"></p>
+    </section>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="qr.js"></script>
+<script>
+(function () {
+  var C = window.C3;
+  var $ = function (id) { return document.getElementById(id); };
+  var S = null, active = null, uploading = false;
+  var MAX_BYTES = 15 * 1024 * 1024;
+  var EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  try { S = JSON.parse(sessionStorage.getItem("c3_editor") || "null"); } catch (e) {}
+
+  function show(el, text, kind) {
+    el.textContent = text;
+    el.className = "msg " + (kind || "");
+  }
+  function hide(el) { el.classList.add("hidden"); }
+  function reveal(el) { el.classList.remove("hidden"); }
+  function pageUrl(name, code) {
+    var u = new URL(name, location.href);
+    u.search = "?kode=" + encodeURIComponent(code);
+    return u.href;
+  }
+
+  // ---------- Masuk / keluar ----------
+  function saveSession(j) {
+    S = { access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 };
+    try { sessionStorage.setItem("c3_editor", JSON.stringify(S)); } catch (e) {}
+  }
+  function authFetch(grant, body) {
+    return fetch(C.base() + "/auth/v1/token?grant_type=" + grant, {
+      method: "POST", headers: { "Content-Type": "application/json", apikey: C.key() }, body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); });
+  }
+  function authMsg(j) {
+    var m = (j && (j.error_description || j.msg || j.message)) || "";
+    if ((j && j.error_code === "invalid_credentials") || /invalid login/i.test(m)) return "Email atau password salah.";
+    return m || "Gagal masuk.";
+  }
+  function token() {
+    if (!S) return Promise.reject(new Error("Belum masuk."));
+    if (S.exp - Date.now() > 60000) return Promise.resolve(S.access);
+    return authFetch("refresh_token", { refresh_token: S.refresh }).then(function (j) {
+      if (!j.access_token) { logout(); throw new Error("Sesi berakhir. Silakan masuk lagi."); }
+      saveSession(j);
+      return S.access;
+    });
+  }
+  function rpc(fn, args) {
+    return token().then(function (t) { return C.rpc(fn, args, t); }).then(function (res) {
+      if (res && res.ok === false) throw new Error(res.error || "Gagal.");
+      if (res && res.ok === undefined) throw new Error("Sistem belum siap: " + (res.code || "") + " " + (res.message || "") + " (pastikan SQL sudah dijalankan)");
+      return res;
+    });
+  }
+  function netMsg(err) {
+    var m = err && err.message ? err.message : "";
+    return m && m !== "Failed to fetch" && m.indexOf("NetworkError") === -1 && m.indexOf("Load failed") === -1 && m !== "NOT_CONFIGURED"
+      ? m : "Tidak bisa terhubung. Periksa internet dan pengaturan config.js.";
+  }
+
+  function showPanel(on) {
+    $("login").classList.toggle("hidden", on);
+    $("panel").classList.toggle("hidden", !on);
+    $("logout").classList.toggle("hidden", !on);
+  }
+  function logout() {
+    S = null; active = null;
+    try { sessionStorage.removeItem("c3_editor"); } catch (e) {}
+    $("password").value = "";
+    $("active").classList.add("hidden");
+    showPanel(false);
+  }
+  $("logout").addEventListener("click", logout);
+
+  $("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    hide($("loginErr"));
+    if (!C.ready()) { show($("loginErr"), "config.js belum diisi (SUPABASE_URL dan SUPABASE_KEY).", "err"); reveal($("loginErr")); return; }
+    authFetch("password", { email: $("email").value.trim(), password: $("password").value }).then(function (j) {
+      if (!j.access_token) throw new Error(authMsg(j));
+      saveSession(j);
+      return rpc("editor_list_folders");
+    }).then(function (res) {
+      showPanel(true);
+      renderFolders(res.folders);
+    }).catch(function (err) {
+      S = null;
+      try { sessionStorage.removeItem("c3_editor"); } catch (e2) {}
+      show($("loginErr"), netMsg(err), "err"); reveal($("loginErr"));
+    });
+  });
+
+  // ---------- Folder ----------
+  function refreshFolders() {
+    return rpc("editor_list_folders").then(function (res) { renderFolders(res.folders); })
+      .catch(function (err) { show($("listMsg"), netMsg(err), "err"); reveal($("listMsg")); });
+  }
+  function renderFolders(list) {
+    if (!list || !list.length) { $("folders").innerHTML = '<p class="hint">Belum ada folder.</p>'; return; }
+    $("folders").innerHTML = list.map(function (f) {
+      return '<div class="fl"><div class="top"><span class="c">' + C.esc(f.code) + "</span>" +
+        '<span class="s">' + f.fileCount + " foto</span></div>" +
+        '<div class="s">' + C.esc(f.note || "Tanpa nama") + (f.ticket ? " · tiket " + C.esc(f.ticket) : "") + " · dibuat " + C.esc(f.createdAt) + "</div>" +
+        '<div class="s ' + (f.expired ? "exp" : "") + '">' + (f.expired ? "Kedaluwarsa " : "Berlaku sampai ") + C.esc(C.fmtDate(f.expiresAt)) + "</div>" +
+        '<div class="row"><button class="btn small" data-open="' + C.esc(f.code) + '" type="button">Buka</button>' +
+        '<button class="btn danger small" data-del="' + C.esc(f.code) + '" type="button">Hapus</button></div></div>';
+    }).join("");
+  }
+  function openFolder(code) {
+    return rpc("editor_folder", { p_code: code }).then(function (res) {
+      setActive(res.folder, res.files);
+    }).catch(function (err) { show($("listMsg"), netMsg(err), "err"); reveal($("listMsg")); });
+  }
+  function setActive(folder, files) {
+    active = folder;
+    reveal($("active"));
+    $("aCode").textContent = folder.code;
+    $("aMeta").textContent = (folder.note || "Tanpa nama") + (folder.ticket ? " · tiket " + folder.ticket : "") +
+      " · " + (files || []).length + " foto · berlaku sampai " + C.fmtDate(folder.expiresAt);
+    var gal = pageUrl("galeri.html", folder.code);
+    $("aQr").href = pageUrl("qr.html", folder.code);
+    try { $("aQrBox").innerHTML = QR.toSvg(gal, { size: 120 }); } catch (e) { $("aQrBox").innerHTML = ""; }
+    renderFiles(files || []);
+    $("active").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function renderFiles(files) {
+    if (!files.length) { $("files").innerHTML = '<p class="hint">Belum ada foto.</p>'; return; }
+    $("files").innerHTML = files.map(function (f) {
+      return '<div class="frow"><img loading="lazy" src="' + C.esc(C.publicUrl(f.path)) + '" alt="">' +
+        '<div class="n">' + C.esc(f.name) + "<small>" + C.esc(C.fmtSize(f.size)) + "</small></div>" +
+        '<button class="btn danger small" data-fdel="' + C.esc(f.id) + '" type="button">Hapus</button></div>';
+    }).join("");
+  }
+
+  $("newForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    hide($("newErr"));
+    var btn = $("newBtn"); btn.disabled = true;
+    rpc("editor_create_folder", { p_note: $("note").value, p_ticket: $("ticket").value }).then(function (res) {
+      $("note").value = ""; $("ticket").value = "";
+      setActive(res.folder, []);
+      return refreshFolders();
+    }).catch(function (err) { show($("newErr"), netMsg(err), "err"); reveal($("newErr")); })
+      .then(function () { btn.disabled = false; });
+  });
+
+  $("folders").addEventListener("click", function (e) {
+    var o = e.target.closest("[data-open]"), d = e.target.closest("[data-del]");
+    if (o) openFolder(o.getAttribute("data-open"));
+    if (d) {
+      var code = d.getAttribute("data-del");
+      if (!confirm("Hapus folder " + code + " beserta semua fotonya? Ini tidak bisa dibatalkan.")) return;
+      rpc("editor_delete_folder", { p_code: code }).then(function (res) {
+        return storageDelete(res.paths).then(function (ok) {
+          if (active && active.code === code) { active = null; $("active").classList.add("hidden"); }
+          show($("listMsg"), ok ? "Folder dihapus." : "Folder dihapus, tetapi sebagian file di penyimpanan belum terhapus.", ok ? "ok" : "err");
+          reveal($("listMsg"));
+          return refreshFolders();
+        });
+      }).catch(function (err) { show($("listMsg"), netMsg(err), "err"); reveal($("listMsg")); });
+    }
+  });
+
+  $("files").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-fdel]");
+    if (!b || !active) return;
+    if (!confirm("Hapus foto ini?")) return;
+    b.disabled = true;
+    rpc("editor_delete_file", { p_id: b.getAttribute("data-fdel") }).then(function (res) {
+      return storageDelete(res.paths);
+    }).then(function () { return openFolder(active.code); })
+      .then(refreshFolders)
+      .catch(function (err) { b.disabled = false; show($("upMsg"), netMsg(err), "err"); reveal($("upMsg")); });
+  });
+
+  $("purge").addEventListener("click", function () {
+    if (!confirm("Hapus semua folder yang sudah kedaluwarsa beserta fotonya?")) return;
+    rpc("editor_delete_expired").then(function (res) {
+      return storageDelete(res.paths).then(function (ok) {
+        show($("listMsg"), res.count + " folder kedaluwarsa dihapus." + (ok ? "" : " Sebagian file di penyimpanan belum terhapus."), ok ? "ok" : "err");
+        reveal($("listMsg"));
+        return refreshFolders();
+      });
+    }).catch(function (err) { show($("listMsg"), netMsg(err), "err"); reveal($("listMsg")); });
+  });
+
+  // Hapus file dari penyimpanan (setelah barisnya dihapus dari database)
+  function storageDelete(paths) {
+    if (!paths || !paths.length) return Promise.resolve(true);
+    return token().then(function (t) {
+      return fetch(C.base() + "/storage/v1/object/softfile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", apikey: C.key(), Authorization: "Bearer " + t },
+        body: JSON.stringify({ prefixes: paths })
+      }).then(function (r) { return r.ok; });
+    }).catch(function () { return false; });
+  }
+
+  // ---------- Tombol folder aktif ----------
+  function copy(text, btn) {
+    function done() { if (!btn) return; var old = btn.textContent; btn.textContent = "Tersalin"; setTimeout(function () { btn.textContent = old; }, 1400); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { window.prompt("Salin teks ini:", text); });
+    else window.prompt("Salin teks ini:", text);
+  }
+  $("copyCode").addEventListener("click", function () { if (active) copy(active.code, this); });
+  $("copyQr").addEventListener("click", function () { if (active) copy(pageUrl("qr.html", active.code), this); });
+  $("copyGal").addEventListener("click", function () { if (active) copy(pageUrl("galeri.html", active.code), this); });
+  $("sendWa").addEventListener("click", function () {
+    if (!active) return;
+    var msg = "Halo! Soft file foto kamu dari Studio C3 sudah siap.\nScan QR di link ini: " + pageUrl("qr.html", active.code) +
+      "\nAtau langsung buka: " + pageUrl("galeri.html", active.code);
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener");
+  });
+
+  // ---------- Unggah foto ----------
+  $("pick").addEventListener("click", function () { if (!uploading) $("file").click(); });
+  $("file").addEventListener("change", function () {
+    var picked = Array.prototype.slice.call(this.files || []);
+    this.value = "";
+    if (!picked.length || !active || uploading) return;
+    var code = active.code;
+    uploading = true; $("pick").disabled = true;
+    $("queue").innerHTML = ""; hide($("upMsg"));
+
+    var items = picked.map(function (f) {
+      var row = document.createElement("div");
+      row.className = "q";
+      row.innerHTML = '<span class="n">' + C.esc(f.name) + '</span><span class="st">Menunggu</span><progress max="1" value="0"></progress>';
+      $("queue").appendChild(row);
+      return { file: f, row: row, st: row.querySelector(".st"), bar: row.querySelector("progress") };
+    });
+    var okCount = 0, failCount = 0;
+
+    items.reduce(function (chain, it) {
+      return chain.then(function () {
+        if (!EXT[it.file.type]) { it.st.textContent = "Format tidak didukung"; it.st.className = "st bad"; failCount++; return; }
+        if (it.file.size > MAX_BYTES) { it.st.textContent = "Lebih dari 15 MB"; it.st.className = "st bad"; failCount++; return; }
+        it.st.textContent = "Mengunggah...";
+        return uploadOne(it.file, code, function (p) { it.bar.value = p; }).then(function () {
+          it.bar.value = 1; it.st.textContent = "Selesai"; it.st.className = "st good"; okCount++;
+        }).catch(function (err) {
+          it.st.textContent = netMsg(err); it.st.className = "st bad"; failCount++;
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      uploading = false; $("pick").disabled = false;
+      show($("upMsg"), okCount + " foto berhasil diunggah" + (failCount ? ", " + failCount + " gagal." : "."), failCount ? "err" : "ok");
+      reveal($("upMsg"));
+      return openFolder(code).then(refreshFolders);
+    });
+  });
+
+  function randomId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var a = new Uint8Array(16); crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+  }
+  function uploadOne(file, code, onProgress) {
+    var path = code + "/" + randomId() + "." + EXT[file.type];
+    return token().then(function (t) {
+      return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", C.base() + "/storage/v1/object/softfile/" + path.split("/").map(encodeURIComponent).join("/"));
+        xhr.setRequestHeader("apikey", C.key());
+        xhr.setRequestHeader("Authorization", "Bearer " + t);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("x-upsert", "false");
+        xhr.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) return resolve();
+          var m = "";
+          try { var j = JSON.parse(xhr.responseText); m = j.message || j.error || ""; } catch (e) {}
+          reject(new Error(/mime|type/i.test(m) ? "Format file ditolak" : /size|large|exceed/i.test(m) ? "Ukuran file terlalu besar" : "Gagal unggah" + (m ? " (" + m + ")" : " (kode " + xhr.status + ")")));
+        };
+        xhr.onerror = function () { reject(new Error("Koneksi terputus")); };
+        xhr.send(file);
+      });
+    }).then(function () {
+      return rpc("editor_register_file", { p_code: code, p_path: path, p_name: file.name, p_size: file.size });
+    });
+  }
+
+  // Masuk otomatis kalau sesi masih ada
+  if (S && C.ready()) {
+    rpc("editor_list_folders").then(function (res) { showPanel(true); renderFolders(res.folders); }).catch(function () { logout(); });
+  }
+})();
+</script>
+</body>
+</html>
