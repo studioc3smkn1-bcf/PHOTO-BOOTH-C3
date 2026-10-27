@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffd21f">
+<title>Soft file foto — Studio C3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #ffd21f; --cream: #fff8d6; --gold: #7a5900; --gold-deep: #4f3a00; --ink: #2b2000;
+    --line: rgba(122, 89, 0, .45);
+    --font-head: "Unbounded", "Trebuchet MS", system-ui, sans-serif;
+    --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--yellow); color: var(--ink); font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.5; }
+  h1 { font-family: var(--font-head); margin: 0; line-height: 1.15; letter-spacing: -0.02em; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .wrap { width: min(1000px, 100% - 2rem); margin-inline: auto; }
+  header.top { padding: 1.1rem 0; }
+  .brand { font-family: var(--font-head); font-weight: 800; font-size: 1.2rem; }
+  .brand span { color: var(--gold); }
+  main { padding: 1rem 0 3rem; }
+  .intro h1 { font-size: clamp(1.7rem, 5vw, 2.6rem); font-weight: 800; }
+  .intro p { margin: .7rem 0 0; max-width: 34rem; }
+  .meta { font-size: .95rem; color: var(--gold-deep); }
+  .bar { display: flex; gap: .7rem; flex-wrap: wrap; align-items: center; margin: 1.4rem 0 1.2rem; }
+  .btn { border: 0; cursor: pointer; background: var(--gold); color: var(--cream); font: inherit; font-weight: 700; padding: .85rem 1.4rem;
+    border-radius: 999px; text-decoration: none; display: inline-block; text-align: center; }
+  .btn:hover { background: var(--gold-deep); }
+  .btn[disabled] { opacity: .55; cursor: not-allowed; }
+  .btn.small { padding: .6rem 1rem; font-size: .95rem; display: block; }
+  .hint { font-size: .92rem; color: var(--gold-deep); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+  .photo { background: var(--cream); border: 2px solid var(--gold); border-radius: 18px; padding: .6rem; display: flex; flex-direction: column; gap: .6rem; }
+  .photo a.view { display: block; border-radius: 12px; overflow: hidden; background: rgba(122, 89, 0, .12); }
+  .photo img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+  .photo .name { font-size: .85rem; color: var(--gold-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 .2rem; }
+  .box { background: var(--cream); border: 2px solid var(--gold); border-radius: 20px; padding: 1.6rem; max-width: 34rem; margin-top: 1.5rem; }
+  .box h1 { font-size: 1.4rem; margin-bottom: .6rem; }
+  footer { padding: 0 0 2rem; font-size: .92rem; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><span class="brand">Studio <span>C3</span></span></div></header>
+<main class="wrap" id="app"><p>Memuat foto...</p></main>
+<footer><div class="wrap">Terima kasih sudah berfoto di Studio C3.</div></footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  var C = window.C3, app = document.getElementById("app");
+  var code = (new URLSearchParams(location.search).get("kode") || "").trim().toLowerCase();
+
+  function box(title, text) {
+    app.innerHTML = '<div class="box"><h1>' + C.esc(title) + "</h1><p>" + C.esc(text) + "</p></div>";
+  }
+  if (!code || !/^[a-z0-9-]{6,60}$/.test(code)) return box("Kode tidak valid", "Pindai ulang QR code dari Studio C3.");
+  if (!C.ready()) return box("Website belum siap", "Pengaturan di config.js belum diisi.");
+
+  C.rpc("get_folder", { p_code: code }).then(function (res) {
+    if (!res.ok) {
+      var msg = res.error || (res.message ? "Sistem belum siap. Detail: " + (res.code || "") + " " + res.message : "Folder tidak ditemukan.");
+      return box(res.expired ? "Folder sudah kedaluwarsa" : "Folder tidak ditemukan", msg);
+    }
+    render(res.folder, res.files || []);
+  }).catch(function (err) {
+    box("Tidak bisa terhubung", err && err.message === "NOT_CONFIGURED" ? "Pengaturan belum diisi." : "Periksa koneksi internet Anda, lalu muat ulang halaman.");
+  });
+
+  function render(folder, files) {
+    if (!files.length) {
+      return box("Foto belum tersedia", "Editor masih menyiapkan foto Anda. Coba pindai atau muat ulang beberapa saat lagi.");
+    }
+    var cards = files.map(function (f, i) {
+      var url = C.publicUrl(f.path);
+      var name = C.safeName(f.name, "foto-" + (i + 1) + ".jpg");
+      return '<div class="photo"><a class="view" href="' + C.esc(url) + '" target="_blank" rel="noopener"><img loading="lazy" src="' + C.esc(url) +
+        '" alt="Foto ' + (i + 1) + '"></a><div class="name">' + C.esc(name) + "</div>" +
+        '<a class="btn small" data-dl href="' + C.esc(url + "?download=" + encodeURIComponent(name)) + '">Download</a></div>';
+    }).join("");
+
+    app.innerHTML =
+      '<div class="intro"><h1>Foto kamu sudah siap</h1>' +
+      "<p>Ketuk <b>Download</b> pada foto yang kamu mau, atau unduh semuanya sekaligus.</p>" +
+      '<p class="meta">' + files.length + " foto. Tersedia sampai " + C.esc(C.fmtDate(folder.expiresAt)) + ".</p></div>" +
+      '<div class="bar"><button class="btn" id="all" type="button">Download semua (' + files.length + ")</button>" +
+      '<span class="hint" id="hint">Jika browser bertanya, izinkan unduhan beberapa file.</span></div>' +
+      '<div class="grid">' + cards + "</div>";
+
+    document.getElementById("all").addEventListener("click", function () {
+      var btn = this, links = document.querySelectorAll("a[data-dl]"), i = 0;
+      btn.disabled = true;
+      (function next() {
+        if (i >= links.length) { btn.disabled = false; btn.textContent = "Download semua (" + links.length + ")"; document.getElementById("hint").textContent = "Selesai. Periksa folder Download di HP Anda."; return; }
+        btn.textContent = "Mengunduh " + (i + 1) + " dari " + links.length + "...";
+        var a = document.createElement("a");
+        a.href = links[i].href; a.rel = "noopener"; a.style.display = "none";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        i++; setTimeout(next, 900);
+      })();
+    });
+  }
+})();
+</script>
+</body>
+</html>
